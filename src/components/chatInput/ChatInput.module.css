@@ -297,6 +297,75 @@
   }
 }
 
+.thinkToggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: stretch;
+  height: 34px;
+  overflow: hidden;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 18px;
+  background-color: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  transition-property: border, background;
+  transition-duration: 0.2s;
+
+  &.selected {
+    border-color: var(--dsw-alias-button-ghost-active-border);
+    background-color: var(--dsw-alias-button-ghost-active-fill);
+    color: var(--dsw-alias-brand-text);
+  }
+}
+
+.thinkMain,
+.thinkArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background-color: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  user-select: none;
+}
+
+.thinkMain {
+  gap: 4px;
+  padding: 0 12px;
+}
+
+.thinkToggle.selected .thinkMain {
+  padding-right: 8px;
+}
+
+.thinkArrow {
+  padding: 0 8px 0 4px;
+
+  &::before {
+    content: '';
+    width: 1px;
+    height: 14px;
+    margin-right: 4px;
+    background-color: currentColor;
+    opacity: 0.2;
+  }
+}
+
+.thinkMain:hover,
+.thinkArrow:hover {
+  background-color: var(--dsw-alias-interactive-bg-hover);
+}
+
+.thinkToggle.selected .thinkMain:hover,
+.thinkToggle.selected .thinkArrow:hover {
+  background-color: var(--dsw-alias-button-ghost-active-hover);
+}
+
 .right {
   display: flex;
   flex-shrink: 0;

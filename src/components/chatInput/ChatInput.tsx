@@ -1,13 +1,16 @@
 import clsx from 'clsx'
 import { memo, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import {
+  IconCheckOutline16,
+  IconChevronDownOutline14,
   IconGlobeLanguageOutline14,
   IconPaperclipOutline16,
   IconSendOutline16,
   IconStopFill16,
   IconThinkOutline14,
 } from '../base/icons.js'
-import { setSearch, setThinking, useSettings } from '../../services/settings.js'
+import { setSearch, setThinking, setThinkingEffort, useSettings } from '../../services/settings.js'
+import type { ThinkingEffort } from '../../services/api/types.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { sendMessage, stopReply, useChatStore } from '../../services/chat/store.js'
 import {
@@ -22,6 +25,7 @@ import {
 } from '../../services/chat/drafts.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
 import { IconButton } from '../base/IconButton.js'
+import { Menu, type MenuOption } from '../base/Menu.js'
 import { Tooltip } from '../base/Tooltip.js'
 import { ensureApiKey } from '../settings/settingsDialogState.js'
 import { DragMask, useFileDrop } from './DragMask.js'
@@ -31,8 +35,14 @@ import { DraftAttachments } from './DraftAttachments.js'
 import { useVoiceInput } from './useVoiceInput.js'
 import { VoiceButton } from './VoiceButton.js'
 import { Spectrum } from './Spectrum.js'
-import { useTranslate } from '../../i18n/index.js'
+import { useTranslate, type TranslationKey } from '../../i18n/index.js'
 import styles from './ChatInput.module.css'
+
+const EFFORT_LABEL: Record<ThinkingEffort, TranslationKey> = {
+  low: 'thinkingEffortLow',
+  high: 'thinkingEffortHigh',
+  max: 'thinkingEffortMax',
+}
 
 /** 输入框：自适应高度的文本框 + 文件 + 深度思考与智能搜索开关 + 语音输入 + 发送 / 停止 */
 export const ChatInput = memo(function ChatInput({ sessionId }: { sessionId: string | null }) {
@@ -50,6 +60,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
     (state) => sessionId !== null && Object.hasOwn(state.streaming, sessionId)
   )
   const thinking = useSettings((state) => state.thinking)
+  const thinkingEffort = useSettings((state) => state.thinkingEffort)
   const importingHistory = useChatStore((state) => state.importingHistory)
   const isMobile = useIsMobile()
   const search = useSettings((state) => state.search)
@@ -72,7 +83,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
     const observer = new ResizeObserver(updateLabels)
     observer.observe(toggles)
     return () => observer.disconnect()
-  }, [t])
+  }, [t, thinking, thinkingEffort])
 
   const acceptFiles = (files: File[]) => {
     if (files.length === 0 || useChatStore.getState().importingHistory || !ensureApiKey()) {
@@ -128,6 +139,16 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
 
   // 移动端录音时用频谱替代输入框内容
   const recording = voice.status === 'recording'
+
+  const thinkingLabel = thinking
+    ? `${t('thinkingSwitch')} · ${t(EFFORT_LABEL[thinkingEffort])}`
+    : t('thinkingSwitch')
+  const effortOptions: MenuOption[] = (['low', 'high', 'max'] as const).map((value) => ({
+    key: value,
+    label: t(EFFORT_LABEL[value]),
+    icon: thinkingEffort === value ? <IconCheckOutline16 /> : null,
+    onSelect: () => setThinkingEffort(value),
+  }))
 
   // 排队、上传中或上传失败的附件都留在输入框，全部上传成功后才能发送
   const canSend = !importingHistory && !streaming && voice.status === 'idle' && draftReady
@@ -203,16 +224,34 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
         {/* 深度思考 / 智能搜索开关，tooltip 在按钮上方 */}
         <div ref={togglesRef} className={styles.toggles}>
           <Tooltip content={t('deactivatedThinkTooltip')}>
-            <button
-              type="button"
-              className={clsx(styles.toggle, thinking && styles.selected)}
-              aria-label={t('thinkingSwitch')}
-              aria-pressed={thinking}
-              onClick={() => setThinking(!thinking)}
-            >
-              <IconThinkOutline14 />
-              <span className={styles.toggleLabel}>{t('thinkingSwitch')}</span>
-            </button>
+            <Menu options={effortOptions}>
+              {({ open, toggle }) => (
+                <div className={clsx(styles.thinkToggle, thinking && styles.selected)}>
+                  <button
+                    type="button"
+                    className={styles.thinkMain}
+                    aria-label={thinkingLabel}
+                    aria-pressed={thinking}
+                    onClick={() => setThinking(!thinking)}
+                  >
+                    <IconThinkOutline14 />
+                    <span className={styles.toggleLabel}>{thinkingLabel}</span>
+                  </button>
+                  {thinking ? (
+                    <button
+                      type="button"
+                      className={styles.thinkArrow}
+                      aria-label={t('thinkingEffortMenu')}
+                      aria-haspopup="menu"
+                      aria-expanded={open}
+                      onClick={toggle}
+                    >
+                      <IconChevronDownOutline14 />
+                    </button>
+                  ) : null}
+                </div>
+              )}
+            </Menu>
           </Tooltip>
           <Tooltip content={t('deactivatedSearchTooltip')}>
             <button

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { ThinkingEffort } from './api/types.js'
 import type { TtsVoice } from './api/speech.js'
 import { normalizeLocation, type UserLocation } from './location.js'
 
@@ -7,7 +8,7 @@ export type Locale = 'zh-CN' | 'en-US'
 /** 主题偏好；默认跟随系统 */
 export type ThemePreference = 'light' | 'dark' | 'system'
 
-/** 本机设置，存 localStorage：API Key、语言、主题、位置、朗读音色、深度思考与智能搜索开关、侧边栏收起状态 */
+/** 本机设置，存 localStorage：API Key、语言、主题、位置、朗读音色、深度思考开关与强度、智能搜索开关、侧边栏收起状态 */
 type Settings = {
   apiKey: string | null
   locale: Locale
@@ -15,6 +16,7 @@ type Settings = {
   location: UserLocation | null
   ttsVoice: TtsVoice
   thinking: boolean
+  thinkingEffort: ThinkingEffort
   search: boolean
   siderCollapsed: boolean
 }
@@ -26,6 +28,7 @@ const KEYS = {
   themePreference: 'chat-demo:theme-preference',
   ttsVoice: 'chat-demo:tts-voice',
   thinking: 'chat-demo:thinking',
+  thinkingEffort: 'chat-demo:thinking-effort',
   search: 'chat-demo:search',
   siderCollapsed: 'chat-demo:sider-collapsed',
 } as const
@@ -87,6 +90,12 @@ const initialThemePreference = (): ThemePreference => {
 /** 未保存过时使用服务端默认音色 stella（海星） */
 const initialTtsVoice = (): TtsVoice => (read(KEYS.ttsVoice) === 'tide' ? 'tide' : 'stella')
 
+/** 未保存过时使用服务端默认强度 high */
+const initialThinkingEffort = (): ThinkingEffort => {
+  const saved = read(KEYS.thinkingEffort)
+  return saved === 'low' || saved === 'max' ? saved : 'high'
+}
+
 export const useSettings = create<Settings>(() => ({
   apiKey: read(KEYS.apiKey),
   locale: initialLocale(),
@@ -94,6 +103,7 @@ export const useSettings = create<Settings>(() => ({
   themePreference: initialThemePreference(),
   ttsVoice: initialTtsVoice(),
   thinking: read(KEYS.thinking) === 'true',
+  thinkingEffort: initialThinkingEffort(),
   search: read(KEYS.search) === 'true',
   siderCollapsed: read(KEYS.siderCollapsed) === 'true',
 }))
@@ -127,6 +137,11 @@ export const setApiKey = (apiKey: string | null) => {
 export const setThinking = (thinking: boolean) => {
   write(KEYS.thinking, String(thinking))
   useSettings.setState({ thinking })
+}
+
+export const setThinkingEffort = (thinkingEffort: ThinkingEffort) => {
+  write(KEYS.thinkingEffort, thinkingEffort)
+  useSettings.setState({ thinkingEffort })
 }
 
 export const setSearch = (search: boolean) => {

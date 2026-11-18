@@ -274,15 +274,16 @@ export const bindChatPersistence = () => {
   }
 }
 
-/** 按当前开关创建回复：深度思考对应 thinking，智能搜索控制 deepseek_web_search。 */
+/** 按当前设置创建回复：深度思考对应 thinking 与思考强度，智能搜索控制 deepseek_web_search。 */
 const createReply = (): AssistantMessage => {
-  const { thinking, search } = useSettings.getState()
+  const { thinking, thinkingEffort, search } = useSettings.getState()
   return {
     id: createId(),
     role: 'assistant',
     createdAt: Date.now(),
     model: MODEL,
     thinking,
+    thinkingEffort,
     search,
     prefix: true,
     status: 'pending',
@@ -726,12 +727,13 @@ export const continueReply = (sessionId: string, messageId: string) => {
   ) {
     return
   }
-  const { thinking, search } = useSettings.getState()
+  const { thinking, thinkingEffort, search } = useSettings.getState()
   const reply: AssistantMessage = {
     ...previous,
-    // 未记录请求配置的回复，续写时使用默认模型和当前开关。
+    // 未记录请求配置的回复，续写时使用默认模型和当前设置。
     model: previous.model ?? MODEL,
     thinking: previous.thinking ?? thinking,
+    thinkingEffort: previous.thinkingEffort ?? thinkingEffort,
     search: previous.search ?? search,
     status: 'pending',
     stopReason: undefined,
@@ -1017,6 +1019,7 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           initial.thinking ?? false,
           latestReminder
         )
+        const thinkingEffort = initial.thinkingEffort ?? useSettings.getState().thinkingEffort
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
           {
@@ -1024,6 +1027,7 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
             system: SYSTEM_PROMPT,
             messages,
             thinking: { type: initial.thinking ? 'enabled' : 'disabled' },
+            ...(initial.thinking ? { output_config: { effort: thinkingEffort } } : {}),
             safety_check: SAFETY_CHECK,
             tools: serverTools(initial.search ?? false),
             ...(titleRequests.has(controller) ? { title: { enabled: true } } : {}),

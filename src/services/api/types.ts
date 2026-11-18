@@ -6,6 +6,9 @@
 
 export type ChatModel = 'deepseek-flash' | 'deepseek-v4-pro'
 
+/** 思考强度：低更快，高为默认，最高适合复杂推理 */
+export type ThinkingEffort = 'low' | 'high' | 'max'
+
 // ---------- 响应：内容块 ----------
 
 /** 正文引用：服务端把模型的引用标记还原为来源，挂在对应文本块上 */
@@ -177,6 +180,8 @@ export type CreateMessageRequest = {
   system: string
   messages: MessageParam[]
   thinking: { type: 'enabled' | 'disabled' }
+  /** 仅思考模式开启时生效；服务端默认 high，budget_tokens 会被忽略 */
+  output_config?: { effort: ThinkingEffort }
   tools: (DeepseekWebSearchTool | DeepseekReadUrlTool)[]
   safety_check: { level: 'high' }
   title?: { enabled: boolean }
